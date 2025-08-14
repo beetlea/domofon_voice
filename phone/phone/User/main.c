@@ -34,6 +34,7 @@ vu8 val;
 volatile uint8_t program_flat = 0;
 volatile uint8_t state = 0;
 uint8_t service_addr = 255;
+
 mode_mcu state_mode;
 /*********************************************************************
  * @fn      USARTx_CFG
@@ -107,6 +108,15 @@ void CALL_BEGIN()
     state = 1;
     state = 1;
 }
+
+void RESET_BEGIN()
+{
+    //uint8_t fl = 0;
+    //program_flat = GET_NUM_FLAT(&fl);
+    //program_flat = GET_NUM_FLAT(&fl);
+    state = 0;
+    state = 0;
+}
 /*********************************************************************
  * @fn      main
  *
@@ -128,18 +138,19 @@ int main(void)
     printf( "ChipID:%08x\r\n", DBGMCU_GetCHIPID() );
 
     USARTx_CFG();
-
-    EXTI0_INT_INIT();
+    ///while(1);
+    //EXTI0_INT_INIT();
+    EXTI1_INT_INIT();
     GPIO_INIT();
-
+    BEGIN_CALL();
     uint8_t fl = 0;
     program_flat = GET_NUM_FLAT(&fl);
     INIT_TIMER();
 
     while(1)
     {
-        program_flat = GET_NUM_FLAT(&fl);
-        printf("flat = %d", program_flat);
+        //program_flat = GET_NUM_FLAT(&fl);
+        //printf("flat = %d", program_flat);
         
         //Delay_Ms(1000);
         state= state;
@@ -147,30 +158,38 @@ int main(void)
         {
             uint16_t prev_flat = 0;
             uint16_t recieve_flat = 0;
+            clear_flat_cnt();
             while(1)
             {
-                Delay_Ms(2000);
+                state = 2;
+                state = 2;
+                uint16_t cnt_wait = 0;
+                while(GET_ADDR_TRANSMIT_BEGIN() == 0)
+                {
+                    Delay_Ms(1);
+                    cnt_wait++;
+                    if(cnt_wait == WAIT_TIME_NUMBER)
+                    {
+                        break;
+                    }
+                }
+                Delay_Ms(70);
+
                 recieve_flat = GET_SEND_FLAT();
                 printf("num flat = %d\r\n", recieve_flat);
                 if(recieve_flat != ERROR_SEND_FLAT)
                 {
-                    if(prev_flat != recieve_flat)
+                    if(recieve_flat ==  program_flat)
                     {
-                        prev_flat = recieve_flat;
+                        BEGIN_CALL();
+                        state_mode = SLEEP_MODE;
+                        break;
                     }
                     else {
-                        if((recieve_flat ==  program_flat) && (recieve_flat != ERROR_SEND_FLAT))
-                        {
-                            BEGIN_CALL();
-                            state_mode = SLEEP_MODE;
-                            break;
-                        }
-                        else {
-                            state = 2;
-                            state = 2;
-                            state_mode = SLEEP_MODE;
-                            break;
-                        }
+                        state = 2;
+                        state = 2;
+                        state_mode = SLEEP_MODE;
+                        break;
                     }
                 }
                 else {

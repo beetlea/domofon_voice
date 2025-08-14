@@ -116,7 +116,7 @@ void old_programm()
 	  //HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
 	  GPIOA->CRH &=~(0x02<<GPIO_CRH_CNF8_Pos);
 	  GPIOA->ODR &= ~(1<<8);
-	  HAL_Delay(4260);
+	  HAL_Delay(260);//HAL_Delay(4260);
 	  ///TIM1->CCR1 = 0;
 	  GPIOA->ODR |= (1<<8);
 	  HAL_Delay(260);
