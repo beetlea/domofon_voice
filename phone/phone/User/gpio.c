@@ -6,7 +6,7 @@
 void EXTI7_0_IRQHandler(void) __attribute__((interrupt("WCH-Interrupt-fast")));
 
 ///extern volatile uint8_t state;
-volatile uint16_t interruptFlag = 0;
+volatile uint32_t interruptFlag = 0;
 volatile uint16_t send_flat = 0;
 mode_mcu state_mode_gpio;
 volatile uint32_t cnt_impulse = 0;
@@ -147,13 +147,19 @@ void EXTI7_0_IRQHandler(void)
      TIM_Cmd(TIM1, DISABLE);
      volatile uint32_t t = TIM_GetCounter(TIM1);
      ///printf("time press = %d\r\n", t);
+     if((t > MIN_TIME_RESET) &&(t < MAX_TIME_RESET))
+     {
 
+        test_flag = 1;
+     }
+     else {
         start_cnt = 1;
         /*send_flat = send_flat + 1;
         if(send_flat > 255)
         {
             send_flat = ERROR_SEND_FLAT;
         }*/
+     }
      TIM_Cmd(TIM1, DISABLE);
      
     }
