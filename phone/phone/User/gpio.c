@@ -12,16 +12,18 @@ mode_mcu state_mode_gpio;
 volatile uint32_t cnt_impulse = 0;
 volatile uint8_t start_cnt = 0;
 volatile uint8_t end_talk = 0;
+volatile uint8_t test_flag = 0;
 void GPIO_INIT()
 {
     GPIO_InitTypeDef GPIO_InitStructure = {0};
 
     RCC_APB2PeriphClockCmd( RCC_APB2Periph_GPIOA, ENABLE);
     RCC_APB2PeriphClockCmd( RCC_APB2Periph_GPIOD, ENABLE);
+    RCC_APB2PeriphClockCmd( RCC_APB2Periph_GPIOC, ENABLE);
 
     GPIO_InitStructure.GPIO_Pin = GPIO_Pin_1;
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
-    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
     GPIO_Init(GPIOA, &GPIO_InitStructure);
 
     GPIO_InitStructure.GPIO_Pin = GPIO_Pin_4|GPIO_Pin_5|GPIO_Pin_6|GPIO_Pin_7;
@@ -35,6 +37,11 @@ void GPIO_INIT()
     
     GPIO_InitStructure.GPIO_Pin = GPIO_Pin_2;
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
+    GPIO_Init(GPIOC, &GPIO_InitStructure);
+
+    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
     GPIO_Init(GPIOC, &GPIO_InitStructure);
 }
 
@@ -104,19 +111,55 @@ mode_mcu current_mode()
 void clear_flat_cnt()
 {
     interruptFlag = 0;
-    interruptFlag = 0;
+    start_cnt = 0;
 }
 
 uint8_t GET_ADDR_TRANSMIT_BEGIN()
 {
     return start_cnt;
 }
+
 void GET_ADDR_TRANSMIT_RESET()
 {
     start_cnt = 0;
 }
 
+uint8_t TEST_FEED()
+{
+    return test_flag;
+}
 
+
+void EXTI7_0_IRQHandler(void)
+{
+    state_mode_gpio = NORMAL_MODE;
+    if((GPIOC->INDR&0b00000010) == 0)
+    {
+        TIM_Cmd(TIM1, ENABLE);
+        TIM_SetCounter(TIM1, 0);
+
+        interruptFlag++;
+
+        EXTI_ClearITPendingBit(EXTI_Line1);
+    }
+    else {
+     EXTI_ClearITPendingBit(EXTI_Line1);
+     TIM_Cmd(TIM1, DISABLE);
+     volatile uint32_t t = TIM_GetCounter(TIM1);
+     ///printf("time press = %d\r\n", t);
+
+        start_cnt = 1;
+        /*send_flat = send_flat + 1;
+        if(send_flat > 255)
+        {
+            send_flat = ERROR_SEND_FLAT;
+        }*/
+     TIM_Cmd(TIM1, DISABLE);
+     
+    }
+}
+
+/*
 void EXTI7_0_IRQHandler(void)
 {
     state_mode_gpio = NORMAL_MODE;
@@ -137,11 +180,8 @@ void EXTI7_0_IRQHandler(void)
      ///printf("time press = %d\r\n", t);
      if((t > MIN_TIME_RESET) &&(t < MAX_TIME_RESET))
      {
-        CALL_BEGIN();
-        send_flat = 0;
-        interruptFlag = 0;
-        start_cnt = 0;
-        end_talk = 1;
+
+        test_flag = 1;
      }
      else {
         start_cnt = 1;
@@ -155,58 +195,31 @@ void EXTI7_0_IRQHandler(void)
      
     }
 }
+*/
 
-/*
-void EXTI7_0_IRQHandler(void)
-{
-    send_flat = send_flat + 1;
-    if(EXTI_GetITStatus(EXTI_Line0)!=RESET)
-    {
-        TIM_Cmd(TIM1, ENABLE);
-        TIM_SetCounter(TIM1, 0);
-        interruptFlag++;
-        EXTI_ClearITPendingBit(EXTI_Line0);
-        return;
-    }
-
-    if(EXTI_GetITStatus(EXTI_Line1)!=RESET)
-    {
-     EXTI_ClearITPendingBit(EXTI_Line1);
-     TIM_Cmd(TIM1, DISABLE);
-     volatile uint32_t t = TIM_GetCounter(TIM1);
-     ///printf("time press = %d\r\n", t);
-     if((t > 2000) &&(t < 20000))
-     {
-        CALL_BEGIN();
-        send_flat = 0;
-        interruptFlag = 0;
-     }
-     else {
-        //send_flat = send_flat + 1;
-        if(send_flat > 255)
-        {
-            ///send_flat = ERROR_SEND_FLAT;
-        }
-     }
-     TIM_Cmd(TIM1, DISABLE);       
-    }
-}*/
 
 
 uint16_t GET_SEND_FLAT()
 {
-    return send_flat;
+    return interruptFlag;
 }
 
 
-
+void ANSWER_REAUEST()
+{
+    Delay_Ms(5);
+    GPIO_SetBits(GPIOC, GPIO_Pin_0);
+    Delay_Ms(10);
+    GPIO_ResetBits(GPIOC, GPIO_Pin_0);
+    while(1);
+}
 
 void BEGIN_CALL()
 {
     GPIO_SetBits(GPIOA, GPIO_Pin_1);
     printf("begin_call!\r\n");
-    end_talk = 0;
-    while(end_talk == 0)
+    Delay_Ms(40);
+    while(GPIO_ReadInputDataBit(GPIOD, GPIO_Pin_0) == Bit_SET)
     {
         if(GPIO_ReadInputDataBit(GPIOC, GPIO_Pin_2) == Bit_RESET)
         {
@@ -219,4 +232,6 @@ void BEGIN_CALL()
     }
     RESET_BEGIN();
     GPIO_ResetBits(GPIOA, GPIO_Pin_1);
+    Delay_Ms(1);
+    while(1);
 }

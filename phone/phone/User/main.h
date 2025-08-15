@@ -1,7 +1,7 @@
 #define WAIT_TIME_NUMBER   2000
-#define MIN_TIME_RESET     200
-#define MAX_TIME_RESET     2000
-
+#define MIN_TIME_RESET     9
+#define MAX_TIME_RESET     12
+#define PROGRAM_FLAT       255
 void CALL_BEGIN();
 void RESET_BEGIN();
 typedef enum{

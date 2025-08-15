@@ -142,18 +142,47 @@ int main(void)
     //EXTI0_INT_INIT();
     EXTI1_INT_INIT();
     GPIO_INIT();
-    BEGIN_CALL();
+    //BEGIN_CALL();
     uint8_t fl = 0;
     program_flat = GET_NUM_FLAT(&fl);
     INIT_TIMER();
 
     while(1)
     {
-        //program_flat = GET_NUM_FLAT(&fl);
-        //printf("flat = %d", program_flat);
-        
-        //Delay_Ms(1000);
-        state= state;
+
+
+        if(GET_ADDR_TRANSMIT_BEGIN() > 0)
+        {
+                uint16_t prev_flat = 0;
+                uint16_t recieve_flat = 0;
+                Delay_Ms(70);
+                recieve_flat = GET_SEND_FLAT();
+                printf("num flat = %d\r\n", recieve_flat);
+                clear_flat_cnt();
+                if(recieve_flat != ERROR_SEND_FLAT)
+                {
+                    if((recieve_flat == program_flat)  && (TEST_FEED() == 0))
+                    {
+                        BEGIN_CALL();
+                        state_mode = SLEEP_MODE;
+                        break;
+                    }
+                    else {
+                        if((recieve_flat == program_flat)  && (TEST_FEED() == 1))
+                        {
+                            ANSWER_REAUEST();
+                        }
+                        else {
+                            if(recieve_flat == PROGRAM_FLAT)
+                            {
+                                BEGIN_CALL();
+                            }
+                        }
+                    }
+                    while(1);
+                }
+        }
+/*        state= state;
         if(state == 1)
         {
             uint16_t prev_flat = 0;
@@ -203,6 +232,6 @@ int main(void)
             {
                 ///PWR_EnterSTANDBYMode(PWR_STANDBYEntry_WFE);
             }
-        }
+        }*/
     }
 }

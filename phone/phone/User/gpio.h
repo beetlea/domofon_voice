@@ -9,3 +9,5 @@ uint16_t GET_SEND_FLAT();
 void clear_flat_cnt();
 uint8_t GET_ADDR_TRANSMIT_BEGIN();
 void GET_ADDR_TRANSMIT_RESET();
+uint8_t TEST_FEED();
+void ANSWER_REAUEST();
